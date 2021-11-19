@@ -7,7 +7,7 @@ import fs2.kafka._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.funsuite.AnyFunSuite
 
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration._
 
 class KafkaSuite extends AnyFunSuite with ForAllTestContainer with Matchers {
   override val container: KafkaContainer = KafkaContainer()
@@ -30,18 +30,16 @@ class KafkaSuite extends AnyFunSuite with ForAllTestContainer with Matchers {
       .withGroupId(com.necosta.tc.Consumer.GroupId)
       .withAutoOffsetReset(AutoOffsetReset.Earliest)
 
-    val topic = "topicName"
-
     val results = for {
       _ <- KafkaProducer.stream(producerSettings).flatMap { producer =>
         events
-          .map(m => ProducerRecord(topic, m._1, m._2))
+          .map(m => ProducerRecord(Workflow.TopicName, m._1, m._2))
           .map(m => ProducerRecords.one(m))
           .evalMap(producer.produce)
       }
         .compile
         .drain
-      messages <- KafkaConsumer.stream(consumerSettings).subscribeTo(topic)
+      messages <- KafkaConsumer.stream(consumerSettings).subscribeTo(Workflow.TopicName)
         .records.take(3).compile.toList
     } yield messages
 
