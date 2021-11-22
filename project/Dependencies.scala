@@ -9,7 +9,8 @@ object Dependencies {
   private val Fs2KafkaVersion = "2.2.0"
 
   val libs = Seq(
-    "com.github.fd4s" %% "fs2-kafka" % Fs2KafkaVersion
+    "com.github.fd4s" %% "fs2-kafka" % Fs2KafkaVersion,
+    "com.github.fd4s" %% "fs2-kafka-vulcan" % Fs2KafkaVersion
   )
 
   val testLibs = Seq(

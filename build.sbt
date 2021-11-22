@@ -2,6 +2,8 @@ import Dependencies._
 
 val Scala2 = "2.13.6"
 
+resolvers += "confluent" at "https://packages.confluent.io/maven/"
+
 lazy val root = (project in file("."))
   .configs(IntegrationTest)
   .settings(
