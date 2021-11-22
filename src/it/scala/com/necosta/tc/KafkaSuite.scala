@@ -12,6 +12,8 @@ import scala.concurrent.duration._
 class KafkaSuite extends AnyFunSuite with ForAllTestContainer with Matchers {
   override val container: KafkaContainer = KafkaContainer()
 
+  private val ConsumerGroupId = "someGroupId"
+
   test("Producer and consumer example") {
     val events = fs2.Stream.emits(
       List(
@@ -27,7 +29,7 @@ class KafkaSuite extends AnyFunSuite with ForAllTestContainer with Matchers {
 
     val consumerSettings = ConsumerSettings[IO, String, String]
       .withBootstrapServers(container.bootstrapServers)
-      .withGroupId(com.necosta.tc.Consumer.GroupId)
+      .withGroupId(ConsumerGroupId)
       .withAutoOffsetReset(AutoOffsetReset.Earliest)
 
     val results = for {

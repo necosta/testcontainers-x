@@ -5,24 +5,22 @@ import fs2.kafka._
 
 import scala.concurrent.duration._
 
-object Workflow extends IOApp {
-
-  val Broker = "localhost:9092"
-  val TopicName = "topicName"
+object Workflow extends IOApp with Utils {
 
   override def run(args: List[String]): IO[ExitCode] = {
-    def processRecord(record: ConsumerRecord[String, String]): IO[(String, String)] =
-      IO.pure(record.key -> record.value)
 
     val consumerSettings =
       ConsumerSettings[IO, String, String]
-        .withAutoOffsetReset(AutoOffsetReset.Earliest)
+        .withIsolationLevel(IsolationLevel.ReadCommitted)
+        .withAutoOffsetReset(AutoOffsetReset.Earliest) // Start consuming from offset 0
         .withBootstrapServers(Broker)
-        .withGroupId(Consumer.GroupId)
+        .withGroupId(ConsumerGroupId)
 
     val producerSettings =
-      ProducerSettings[IO, String, String]
-        .withBootstrapServers(Broker)
+      ProducerSettings[IO, String, String](
+        keySerializer = Serializer[IO, String],
+        valueSerializer = Serializer[IO, String]
+      ).withBootstrapServers(Broker)
 
     val stream =
       KafkaConsumer
@@ -31,10 +29,10 @@ object Workflow extends IOApp {
         .records
         .mapAsync(25) { committable =>
           processRecord(committable.record)
-            .map { case (key, value) =>
-              val record = ProducerRecord(TopicName, key, value)
+            .map(r => {
+              val record = ProducerRecord(TopicName, r.key, r.value)
               ProducerRecords.one(record, committable.offset)
-            }
+            })
         }
         .through(KafkaProducer.pipe(producerSettings))
         .map(_.passthrough)
@@ -42,4 +40,7 @@ object Workflow extends IOApp {
 
     stream.compile.drain.as(ExitCode.Success)
   }
+
+  private def processRecord(record: ConsumerRecord[String, String]): IO[KafkaRecord] =
+    IO.pure(KafkaRecord(record.key, record.value))
 }
